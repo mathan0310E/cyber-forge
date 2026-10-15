@@ -1,7 +1,7 @@
 import type { Deployment } from '@wolf-forge/shared-types';
 import { COLLECTIONS, type DocStore, type WhereClause } from '../db/store.js';
 import { ApiError } from '../services/errors.js';
-import { VercelDeploymentService } from '../integrations/vercel.js';
+import type { VercelDeploymentService } from '../integrations/vercel.js';
 
 /**
  * Provider-neutral deployment service.
@@ -13,8 +13,9 @@ import { VercelDeploymentService } from '../integrations/vercel.js';
 export class DeploymentService {
   private readonly vercel: VercelDeploymentService;
 
-  constructor(private readonly store: DocStore) {
-    this.vercel = new VercelDeploymentService(store);
+  constructor(private readonly store: DocStore, vercel: VercelDeploymentService) {
+    void store;
+    this.vercel = vercel;
   }
 
   async createForProject(input: {

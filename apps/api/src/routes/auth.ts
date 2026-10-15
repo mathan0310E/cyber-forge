@@ -3,6 +3,7 @@ import type { Router } from 'express';
 import { Router as expressRouter } from 'express';
 import type { SessionUser } from '@wolf-forge/shared-types';
 import {
+  GoogleSignInRequestSchema,
   LoginRequestSchema,
   PasswordResetRequestSchema,
   SignupRequestSchema,
@@ -110,6 +111,93 @@ export function createAuthRouter(deps: AuthRouteDeps): Router {
         outcome: 'success',
       });
       res.json({ user, token: session.token, expiresAt: session.expiresAt, driver: driver.id });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  /**
+   * /api/v1/auth/google — exchange a Firebase ID token minted by the client side
+   * Google sign-in for a Wolf Forge session.
+   *
+   * Only reachable when the auth driver is `firebase` (needs the Admin SDK).
+   * The ID token is verified server-side; the user record is upserted so
+   * project ownership and quotas can rely on the users collection. The verified
+   * ID token is returned as the session token (FirebaseAuthDriver.verify
+   * accepts it as a Bearer token on subsequent requests).
+   */
+  router.post('/google', async (req, res, next) => {
+    try {
+      if (driver.id !== 'firebase') {
+        throw ApiError.notConfigured(
+          'Google sign-in requires Firebase Authentication. Set WOLF_FORGE_AUTH_DRIVER=firebase ' +
+            'and configure the Firebase Admin SDK (see docs/configuration.md#firebase).',
+          { setup: 'configure-firebase-auth' },
+        );
+      }
+      const input = GoogleSignInRequestSchema.parse(req.body ?? {});
+      const { getAuth } = await import('firebase-admin/auth');
+      let decoded;
+      try {
+        decoded = await getAuth().verifyIdToken(input.idToken, true);
+      } catch (e) {
+        const code = (e as { code?: string }).code ?? '';
+        if (code === 'auth/id-token-expired') {
+          throw ApiError.unauthorized('Session expired. Sign in again.');
+        }
+        if (code === 'auth/id-token-revoked') {
+          throw ApiError.unauthorized('Session was revoked. Sign in again.');
+        }
+        throw ApiError.unauthorized('Invalid Google sign-in token. Please try again.');
+      }
+
+      const email = decoded.email ? decoded.email.toLowerCase() : null;
+      const displayName = (decoded.name as string | undefined) ?? decoded.email ?? null;
+      const existing = await users.getById(decoded.uid);
+      if (existing) {
+        if (
+          (existing.email ?? null) !== email ||
+          (existing.displayName ?? null) !== displayName ||
+          existing.emailVerified !== Boolean(decoded.email_verified)
+        ) {
+          await users.update(decoded.uid, {
+            email,
+            displayName,
+            emailVerified: Boolean(decoded.email_verified),
+          });
+        }
+        await users.recordLogin(decoded.uid);
+      } else {
+        await users.create({
+          uid: decoded.uid,
+          email,
+          displayName,
+          emailVerified: Boolean(decoded.email_verified),
+          // Role is never taken from token claims; requireAuth resolves the
+          // authoritative role from server-side state (WOLF_FORGE_ADMIN_UIDS).
+          role: 'user',
+        });
+      }
+
+      const record = await users.getById(decoded.uid);
+      if (!record) throw ApiError.internal('Account created but could not be loaded.');
+      const user = users.toSessionUser(record);
+
+      await audit.record({
+        actorUid: decoded.uid,
+        action: 'auth.googleSignIn',
+        resourceType: 'user',
+        resourceId: decoded.uid,
+        outcome: 'success',
+        metadata: { email },
+      });
+
+      res.json({
+        user,
+        token: input.idToken,
+        expiresAt: new Date(decoded.exp * 1000).toISOString(),
+        driver: driver.id,
+      });
     } catch (e) {
       next(e);
     }

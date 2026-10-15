@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
+import { GoogleSignInButton } from './GoogleSignInButton';
 import { WolfMark } from '../../components/PublicLayout';
 
 export function LoginPage() {
@@ -35,10 +36,7 @@ export function LoginPage() {
             Wolf <span className="text-forge-orange">Forge</span>
           </span>
         </div>
-        <form
-          onSubmit={(e) => void submit(e)}
-          className="rounded-2xl border border-forge-border bg-forge-panel p-6"
-        >
+        <div className="rounded-2xl border border-forge-border bg-forge-panel p-6">
           <h1 className="font-display text-xl font-bold">Welcome back</h1>
           <p className="mt-1 text-sm text-forge-muted">Sign in to your forge.</p>
           {(formError || error) && (
@@ -46,7 +44,16 @@ export function LoginPage() {
               {formError ?? error}
             </p>
           )}
-          <label className="mt-4 block text-sm font-medium" htmlFor="email">
+          <div className="mt-4">
+            <GoogleSignInButton />
+          </div>
+          <div className="my-4 flex items-center gap-3 text-xs text-forge-muted">
+            <span className="h-px flex-1 bg-forge-border" />
+            or with email
+            <span className="h-px flex-1 bg-forge-border" />
+          </div>
+          <form onSubmit={(e) => void submit(e)}>
+          <label className="block text-sm font-medium" htmlFor="email">
             Email
           </label>
           <input
@@ -84,6 +91,7 @@ export function LoginPage() {
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
+        </div>
         <p className="mt-4 text-center text-sm text-forge-muted">
           New here?{' '}
           <Link to="/signup" className="font-medium text-forge-cyan hover:underline">

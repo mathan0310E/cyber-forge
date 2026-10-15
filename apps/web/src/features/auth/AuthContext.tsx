@@ -14,6 +14,10 @@ interface AuthState {
   error: string | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, displayName?: string) => Promise<void>;
+  /** Google sign-in via Firebase Auth. Returns true when it actually ran. */
+  googleSignIn: () => Promise<boolean>;
+  /** True when the browser Firebase/GitHub setup makes Google sign-in available. */
+  googleSignInAvailable: boolean;
   signOut: () => Promise<void>;
   clearError: () => void;
 }
@@ -102,6 +106,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const googleSignIn = useCallback(async (): Promise<boolean> => {
+    const { firebaseEnabled, getFirebaseAuth, googleProvider } = await import('../../lib/firebase');
+    if (!firebaseEnabled) {
+      setError('Google sign-in is not configured. Ask the operator to set VITE_FIREBASE_* and enable Google in Firebase Auth.');
+      return false;
+    }
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      setError('Google sign-in is not configured on this build.');
+      return false;
+    }
+    try {
+      const { signInWithPopup } = await import('firebase/auth');
+      const cred = await signInWithPopup(auth, googleProvider);
+      const idToken = await cred.user.getIdToken();
+      const r = await api.post<{ token: string; user: SessionUser }>('/auth/google', {
+        idToken,
+      });
+      persist(r.token, r.user);
+      return true;
+    } catch (e) {
+      setError(
+        e instanceof Error && e.name === 'ApiClientError'
+          ? e.message
+          : 'Google sign-in did not complete. Check that Firebase is configured and Google sign-in is enabled in the Firebase console.',
+      );
+      throw e;
+    }
+  }, [persist]);
+
   const signOut = useCallback(async () => {
     try {
       await api.post('/auth/logout', {});
@@ -117,8 +151,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearError = useCallback(() => setError(null), []);
 
   const value = useMemo(
-    () => ({ user, loading, error, signIn, signUp, signOut, clearError }),
-    [user, loading, error, signIn, signUp, signOut, clearError],
+    () => ({
+      user,
+      loading,
+      error,
+      signIn,
+      signUp,
+      googleSignIn,
+      googleSignInAvailable: typeof import.meta.env.VITE_FIREBASE_API_KEY === 'string' && Boolean(import.meta.env.VITE_FIREBASE_API_KEY),
+      signOut,
+      clearError,
+    }),
+    [user, loading, error, signIn, signUp, googleSignIn, signOut, clearError],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

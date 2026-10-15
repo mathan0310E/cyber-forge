@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { LandingPage } from '../app/LandingPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
+import { ConnectIntegrationsPage } from '../features/integrations/ConnectIntegrations';
 import { Dashboard } from '../features/dashboard/Dashboard';
 import { NewProject } from '../features/dashboard/NewProject';
 import { Workspace } from '../features/workspace/Workspace';
@@ -41,6 +42,7 @@ export function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/app" element={<RequireAuth><Dashboard /></RequireAuth>} />
+      <Route path="/app/connect" element={<RequireAuth><ConnectIntegrationsPage /></RequireAuth>} />
       <Route path="/app/new" element={<RequireAuth><NewProject /></RequireAuth>} />
       <Route path="/app/projects/:projectId" element={<RequireAuth><Workspace /></RequireAuth>} />
       <Route path="*" element={<Onboarding />} />

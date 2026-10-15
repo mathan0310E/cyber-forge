@@ -19,8 +19,35 @@ export const IntegrationSchema = z.object({
   connectedAt: z.string().nullable(),
   updatedAt: z.string().nullable(),
   lastError: z.string().nullable(),
+  /**
+   * True when the user explicitly skipped connecting this provider during the
+   * post-sign-in onboarding flow. Skipping persists; the user can still
+   * connect later from Integrations.
+   */
+  skipped: z.boolean().default(false),
+  /**
+   * OAuth capability signal. When false, the "connect" button falls back to
+   * the manual token path (or an honest setup-required state) instead of
+   * launching an OAuth dance that cannot succeed.
+   */
+  oauthAvailable: z.boolean().default(false),
 });
 export type Integration = z.infer<typeof IntegrationSchema>;
+
+/** Response body for POST /integrations/:provider/authorize. */
+export const OAuthAuthorizeResponseSchema = z.object({
+  /** Absolute URL the browser should navigate to (provider consent page). */
+  authorizeUrl: z.string().url(),
+  provider: IntegrationProvider,
+});
+export type OAuthAuthorizeResponse = z.infer<typeof OAuthAuthorizeResponseSchema>;
+
+/** Response body for POST /integrations/:provider/skip. */
+export const IntegrationSkipResponseSchema = z.object({
+  provider: IntegrationProvider,
+  skipped: z.literal(true),
+});
+export type IntegrationSkipResponse = z.infer<typeof IntegrationSkipResponseSchema>;
 
 export const GitHubConnectRequestSchema = z.object({
   /** Personal access token path, for users who prefer not to run an OAuth app. */
