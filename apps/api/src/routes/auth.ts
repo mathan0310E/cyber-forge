@@ -11,6 +11,7 @@ import {
 import type { Config } from '../config/env.js';
 import type { DocStore } from '../db/store.js';
 import type { AuthDriver } from '../services/auth-driver.js';
+import type { RequestHandler } from 'express';
 import { ApiError } from '../services/errors.js';
 import { hashPassword, verifyPassword } from '../services/password.js';
 import type { UserRepository } from '../services/users.js';
@@ -26,11 +27,13 @@ export interface AuthRouteDeps {
   users: UserRepository;
   store: DocStore;
   audit: AuditService;
+  /** Bearer-token gate for the private /me endpoint. */
+  requireAuth: RequestHandler;
 }
 
 export function createAuthRouter(deps: AuthRouteDeps): Router {
   const router = expressRouter();
-  const { driver, users, audit } = deps;
+  const { driver, users, audit, requireAuth } = deps;
   const localCredentials = driver.id === 'local';
 
   /** /api/v1/auth/signup */
@@ -113,7 +116,7 @@ export function createAuthRouter(deps: AuthRouteDeps): Router {
   });
 
   /** /api/v1/auth/me — returns the current session user (via requireAuth). */
-  router.get('/me', (req, res) => {
+  router.get('/me', requireAuth, (req, res) => {
     const p = req.principal;
     if (!p) throw ApiError.unauthorized();
     res.json({ user: p.user, driver: p.driver });

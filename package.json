@@ -22,7 +22,7 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "test": "npm run test --workspaces --if-present",
-    "test:unit": "vitest run --config vitest.config.ts",
+    "test:unit": "npm run test --workspace @wolf-forge/api",
     "test:e2e": "playwright test",
     "start": "npm run start --workspace @wolf-forge/api",
     "clean": "rm -rf apps/*/dist packages/*/dist node_modules/.cache"

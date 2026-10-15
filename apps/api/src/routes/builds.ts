@@ -1,4 +1,4 @@
-import type { Router } from 'express';
+import type { RequestHandler, Router } from 'express';
 import { Router as expressRouter } from 'express';
 import { CreateBuildRequestSchema, type BuildEvent } from '@wolf-forge/shared-types';
 import type { Config } from '../config/env.js';
@@ -21,17 +21,17 @@ export interface BuildDeps {
   usage: UsageService;
 }
 
-export function createBuildsRouter(deps: BuildDeps): Router {
-  const router = expressRouter();
-
-  /** POST /api/v1/projects/:projectId/builds */
-  router.post('/projects/:projectId/builds', async (req, res, next) => {
+/** Shared handler for POST /projects/:projectId/builds (used by both mounts). */
+function createBuildRequestHandler(deps: BuildDeps): RequestHandler {
+  return async (req, res, next) => {
     try {
       const p = req.principal;
       if (!p) throw ApiError.unauthorized();
 
+      const projectId = req.params.projectId;
+      if (!projectId) throw ApiError.badRequest('Missing project id.');
       const input = CreateBuildRequestSchema.parse(req.body ?? {});
-      const project = await deps.projects.getOwned(req.params.projectId, p.user.uid);
+      const project = await deps.projects.getOwned(projectId, p.user.uid);
 
       // Quotas are enforced server-side from configuration (never client-side).
       if (input.instruction && input.instruction.length > deps.config.quotas.maxPromptChars) {
@@ -45,7 +45,7 @@ export function createBuildsRouter(deps: BuildDeps): Router {
       const baseVersionId = input.baseVersionId ?? project.currentVersionId;
 
       const job = await deps.jobs.create({
-        projectId: req.params.projectId,
+        projectId,
         ownerUid: p.user.uid,
         operation: input.operation,
         instruction: input.instruction ?? null,
@@ -60,7 +60,24 @@ export function createBuildsRouter(deps: BuildDeps): Router {
     } catch (e) {
       next(e);
     }
-  });
+  };
+}
+
+/**
+ * Spec-compatible mount: exposes POST /projects/:projectId/builds under
+ * /api/v1/projects without shadowing project routes (no catch-all here).
+ */
+export function createProjectBuildsAliasRouter(deps: BuildDeps): Router {
+  const router = expressRouter();
+  router.post('/:projectId/builds', createBuildRequestHandler(deps));
+  return router;
+}
+
+export function createBuildsRouter(deps: BuildDeps): Router {
+  const router = expressRouter();
+
+  /** POST /api/v1/projects/:projectId/builds (spec path, also aliased below for the /api/v1/builds mount) */
+  router.post('/projects/:projectId/builds', createBuildRequestHandler(deps));
 
   /** GET /api/v1/builds/:buildId */
   router.get('/:buildId', async (req, res, next) => {

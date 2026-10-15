@@ -38,7 +38,12 @@ export function Workspace() {
   const location = useLocation();
   const { jobId } = (location.state as { jobId?: string } | null) ?? {};
 
-  const [project, setProject] = useState<{ name: string; framework: string; currentVersionId: string | null } | null>(null);
+  const [project, setProject] = useState<{
+    name: string;
+    framework: string;
+    currentVersionId: string | null;
+    previewUrl: string | null;
+  } | null>(null);
   const [job, setJob] = useState<BuildJob | null>(null);
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -58,10 +63,15 @@ export function Workspace() {
     let active = true;
     void (async () => {
       try {
-        const p = await api.get<{ project: { name: string; framework: string; currentVersionId: string | null; previewUrl: string | null } }>(`/projects/${projectId}`);
+        const p = await api.get<{
+          name: string;
+          framework: string;
+          currentVersionId: string | null;
+          previewUrl: string | null;
+        }>(`/projects/${projectId}`);
         if (!active) return;
-        setProject(p.project);
-        if (p.project.previewUrl) setPreviewUrl(p.project.previewUrl);
+        setProject(p);
+        if (p.previewUrl) setPreviewUrl(p.previewUrl);
         const f = await api.get<{ files: FileInfo[]; fileCount: number }>(`/projects/${projectId}/files`);
         if (!active) return;
         setFiles(f.files);
@@ -81,17 +91,42 @@ export function Workspace() {
     };
   }, [projectId]);
 
+  // After the build settles, refresh the project (preview URL) and the file tree.
+  const refreshProjectState = useCallback(async () => {
+    try {
+      const p = await api.get<{
+        name: string;
+        framework: string;
+        currentVersionId: string | null;
+        previewUrl: string | null;
+      }>(`/projects/${projectId}`);
+      setProject(p);
+      if (p.previewUrl) setPreviewUrl(p.previewUrl);
+      const f = await api.get<{ files: FileInfo[]; fileCount: number }>(`/projects/${projectId}/files`);
+      setFiles(f.files);
+      setSelectedFile((prev) => {
+        if (prev) return prev;
+        const pick =
+          f.files.find((x) => x.path.endsWith('.tsx')) ??
+          f.files.find((x) => x.path.endsWith('.ts')) ??
+          f.files.find((x) => x.editable) ??
+          f.files[0];
+        return pick ? pick.path : null;
+      });
+    } catch {
+      /* ignore transient failures */
+    }
+  }, [projectId]);
+
   // Track the active job via SSE. If none is running, poll the last build.
   useEffect(() => {
     if (!jobId && !project) return;
-    const watch = async (id: string) => {
+    const watchBuild = async (buildId: string) => {
       try {
-        const j = await api.get<BuildJob>(`/builds/${id}`);
+        const j = await api.get<BuildJob>(`/builds/${buildId}`);
         setJob(j);
-        if (j.state === 'PreviewReady' && typeof j.resultVersionId === 'string') {
-          // Pull the preview URL from the build's event stream or a fresh project fetch.
-          const p2 = await api.get<{ project: { currentVersionId: string } }>(`/projects/${projectId}`);
-          void p2;
+        if (j.state === 'PreviewReady' || j.state === 'Failed' || j.state === 'Cancelled') {
+          await refreshProjectState();
         }
       } catch {
         /* polling fallback */
@@ -116,6 +151,17 @@ export function Workspace() {
               }
               return [...h, entry];
             });
+            setJob((prev) => {
+              const st = ev.state as BuildJob['state'];
+              return prev ? { ...prev, state: st } : prev;
+            });
+            if (
+              ev.state === 'PreviewReady' ||
+              ev.state === 'Failed' ||
+              ev.state === 'Cancelled'
+            ) {
+              void refreshProjectState();
+            }
             if (ev.type === 'preview-ready' && ev.data?.url) {
               setPreviewUrl(String(ev.data.url));
             }
@@ -137,15 +183,22 @@ export function Workspace() {
           /* SSE reconnects automatically */
         },
       });
-      return () => close();
+      void watchBuild(jobId);
+      const t = window.setInterval(() => {
+        void watchBuild(jobId);
+      }, 4000);
+      return () => {
+        close();
+        window.clearInterval(t);
+      };
     }
 
-    // Poll the most recent build if the workspace refreshes mid-build.
-    void watch(projectId);
-    const t = window.setInterval(() => {
-      void watch(projectId);
+    // No job id (fresh visit) — poll the project's settled state so a build
+    // started elsewhere shows up.
+    const t2 = window.setInterval(() => {
+      void refreshProjectState();
     }, 3000);
-    return () => window.clearInterval(t);
+    return () => window.clearInterval(t2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, projectId, project?.currentVersionId]);
 
@@ -384,9 +437,7 @@ export function Workspace() {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  api.post(`/builds/${job?.id}`, {}).catch(() => undefined);
-                }}
+                onClick={() => void refreshProjectState()}
                 className="text-xs text-forge-muted hover:text-forge-text"
               >
                 Refresh state
