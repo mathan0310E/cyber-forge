@@ -28,7 +28,7 @@ import { requestContext } from './middleware/request-context.js';
 import { errorHandler, notFoundHandler } from './middleware/error-handler.js';
 import { createAuthRouter } from './routes/auth.js';
 import { createProjectsRouter } from './routes/projects.js';
-import { createBuildsRouter } from './routes/builds.js';
+import { createBuildsRouter, createProjectBuildsAliasRouter } from './routes/builds.js';
 import { createAiRouter } from './routes/ai.js';
 import { createIntegrationsRouter } from './routes/integrations.js';
 import { createDeploymentsRouter } from './routes/deployments.js';
@@ -137,7 +137,11 @@ async function bootstrap(): Promise<{ app: express.Express; config: Config }> {
   app.use(express.json({ limit: '1mb' }));
 
   // ----- Auth (public) ------------------------------------------------------
-  app.use('/api/v1/auth', rateLimiters.credentials, createAuthRouter({ config, driver, users, store, audit }));
+  app.use(
+    '/api/v1/auth',
+    rateLimiters.credentials,
+    createAuthRouter({ config, driver, users, store, audit, requireAuth }),
+  );
   app.get('/api/v1/me', requireAuth, (req, res) => {
     res.json({ user: req.principal!.user, driver: driver.id });
   });
@@ -171,6 +175,7 @@ async function bootstrap(): Promise<{ app: express.Express; config: Config }> {
     return artifacts.readAllFiles(project.id, project.currentVersionId);
   };
 
+  app.use('/api/v1/projects', createProjectBuildsAliasRouter({ config, projects, jobs, runner, usage, events }));
   app.use('/api/v1/projects', createProjectsRouter({
     config,
     store,

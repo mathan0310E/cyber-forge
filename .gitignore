@@ -24,3 +24,6 @@ playwright-report/
 test-results/
 .vite/
 .agent_tmp/
+
+# Local runtime logs
+*.log

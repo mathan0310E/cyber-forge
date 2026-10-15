@@ -10,14 +10,14 @@ interface ProjectSummary {
   description: string;
   category: string;
   framework: string;
-  status: string;
+  lastBuildStatus: 'never' | 'running' | 'succeeded' | 'failed' | 'cancelled';
   updatedAt: string;
   createdAt: string;
   currentVersionId: string | null;
 }
 
 interface ListResponse {
-  projects: ProjectSummary[];
+  items: ProjectSummary[];
   nextCursor: string | null;
 }
 
@@ -56,7 +56,7 @@ export function Dashboard() {
       if (cursor) params.set('cursor', cursor);
       if (q) params.set('search', q);
       const r = await api.get<ListResponse>(`/projects?${params.toString()}`);
-      setProjects((prev) => (cursor ? [...prev, ...r.projects] : r.projects));
+      setProjects((prev) => (cursor ? [...prev, ...r.items] : r.items));
       setNextCursor(r.nextCursor);
     } catch (e) {
       setError(e instanceof ApiClientError ? e.message : 'Could not load projects.');
@@ -191,14 +191,16 @@ export function Dashboard() {
                       </h2>
                       <span
                         className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
-                          p.status === 'ready'
+                          p.lastBuildStatus === 'succeeded'
                             ? 'bg-forge-lime/15 text-forge-lime'
-                            : p.status === 'building'
+                            : p.lastBuildStatus === 'running'
                               ? 'bg-forge-cyan/15 text-forge-cyan'
-                              : 'bg-forge-border text-forge-muted'
+                              : p.lastBuildStatus === 'failed'
+                                ? 'bg-forge-orange/15 text-forge-orange'
+                                : 'bg-forge-border text-forge-muted'
                         }`}
                       >
-                        {p.status}
+                        {p.lastBuildStatus}
                       </span>
                     </div>
                     <p className="mt-2 line-clamp-2 min-h-[2.5rem] text-sm text-forge-muted">

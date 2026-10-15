@@ -210,7 +210,15 @@ export class GenerationPipeline {
         previewUrl,
         lastBuildAt: new Date().toISOString(),
         lastError: null,
+        lastBuildStatus: 'succeeded',
       });
+      if (job.resultVersionId) {
+        await this.deps.versions.updateBuildStatus(
+          job.resultVersionId,
+          'succeeded',
+          'Build succeeded and preview is ready',
+        );
+      }
 
       log.info({ versionId: job.resultVersionId, previewId: preview.id }, 'pipeline finished');
       return { versionId: job.resultVersionId, previewUrl };

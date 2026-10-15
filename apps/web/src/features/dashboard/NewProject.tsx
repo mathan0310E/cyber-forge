@@ -6,13 +6,13 @@ import { useAuth } from '../auth/AuthContext';
 const CATEGORIES = [
   'portfolio',
   'business',
-  'landing',
+  'landing-page',
   'blog',
   'ecommerce',
   'saas-dashboard',
-  'educational',
+  'education',
   'event',
-  'docs',
+  'documentation',
   'custom',
 ];
 
@@ -31,7 +31,7 @@ export function NewProject() {
 
   const [prompt, setPrompt] = useState(initialPrompt);
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('landing');
+  const [category, setCategory] = useState('landing-page');
   const [framework, setFramework] = useState('vite-react-ts');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
