@@ -1,0 +1,26 @@
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Local artifact store for generated projects (never commit user projects)
+.artifacts/
+.data/
+.workspaces/
+.tmp/
+
+# Firebase service account material
+serviceAccount*.json
+firebase-adminsdk*.json
+
+# Test / tooling output
+playwright-report/
+test-results/
+.vite/
+.agent_tmp/
