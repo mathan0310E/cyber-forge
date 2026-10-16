@@ -21,8 +21,7 @@ const PushBodySchema = PushToGitHubRequestSchema.extend({
   projectId: z.string().min(1),
 });
 
-const PROVIDERS = ['github', 'vercel'] as const;
-type Provider = (typeof PROVIDERS)[number];
+type Provider = 'github' | 'vercel';
 
 const SkipBodySchema = z.object({
   returnTo: z.string().max(512).optional(),

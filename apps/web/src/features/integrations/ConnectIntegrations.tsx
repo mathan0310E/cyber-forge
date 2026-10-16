@@ -112,7 +112,7 @@ export function ConnectIntegrationsPage() {
     return () => {
       cancelled = true;
     };
-  }, [user, navigate, refresh]);
+  }, [user, navigate, refresh, autoStart]);
 
   const autoStart = useCallback(
     async (provider: Provider, list?: Integration[]) => {
@@ -350,3 +350,4 @@ function PhaseChip({ phase }: { phase: Exclude<ProviderPhase, 'failed'> | 'conne
     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${m.cls}`}>{m.label}</span>
   );
 }
+

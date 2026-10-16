@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import type { DocStore } from '../db/store.js';
 import { LocalDocStore } from '../db/local-store.js';
 import { GitHubIntegrationService } from './github.js';
 import { GitHubOAuthService } from './github-oauth.js';
@@ -68,7 +67,7 @@ describe('GitHubOAuthService', () => {
   });
 
   it('saves the token only after verification and forbids a second use of the state', async () => {
-    const { db, github, oauthState, oauth } = makeServices(dir);
+    const { github, oauthState, oauth } = makeServices(dir);
     const state = await oauthState.begin('user_1', 'github', '/app/connect');
 
     // Verify call: exchange => a token, /user => login.
@@ -151,3 +150,4 @@ describe('GitHubOAuthService', () => {
     vi.restoreAllMocks();
   });
 });
+
