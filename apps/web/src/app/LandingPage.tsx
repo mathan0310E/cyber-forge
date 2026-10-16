@@ -46,7 +46,7 @@ export function LandingPage() {
   return (
     <div className="feature-grid">
       {/* Hero */}
-      <section className="relative mx-auto max-w-6xl px-4 pb-20 pt-16 sm:pt-24">
+      <section className="relative mx-auto max-w-6xl px-4 pb-16 pt-12 sm:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-[1.25fr_1fr]">
           <div>
             <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-forge-border bg-forge-panel px-3 py-1 text-xs font-medium uppercase tracking-widest text-forge-muted">
@@ -77,7 +77,7 @@ export function LandingPage() {
                 <button
                   type="button"
                   onClick={() => startForge()}
-                  className="rounded-lg bg-forge-lime px-6 py-3 font-semibold text-forge-bg transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-forge-lime"
+                  className="rounded-lg bg-forge-orange px-6 py-3 font-semibold text-forge-bg transition-all hover:-translate-y-0.5 hover:shadow-[0_0_24px_rgba(255,138,36,0.35)] focus-visible:outline-2 focus-visible:outline-forge-orange focus-visible:outline-offset-2"
                 >
                   Forge my website
                 </button>

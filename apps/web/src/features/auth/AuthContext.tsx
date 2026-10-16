@@ -127,10 +127,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       persist(r.token, r.user);
       return true;
     } catch (e) {
+      const firebaseErr = e as Error & { code?: string };
+      const isApiErr = e instanceof Error && e.name === 'ApiClientError';
       setError(
-        e instanceof Error && e.name === 'ApiClientError'
+        isApiErr
           ? e.message
-          : 'Google sign-in did not complete. Check that Firebase is configured and Google sign-in is enabled in the Firebase console.',
+          : firebaseErr.code
+            ? `Google sign-in failed (${firebaseErr.code}): ${firebaseErr.message}`
+            : 'Google sign-in did not complete. Check that Firebase is configured and Google sign-in is enabled in the Firebase console.',
       );
       throw e;
     }

@@ -47,7 +47,7 @@ export function PublicLayout() {
             </NavLink>
             {user ? (
               <div className="flex items-center gap-2">
-                <Link to="/app" className="ml-2 rounded-md bg-forge-lime px-3 py-1.5 text-sm font-semibold text-forge-bg hover:brightness-95">
+                <Link to="/app" className="ml-2 rounded-md bg-forge-orange px-3 py-1.5 text-sm font-semibold text-forge-bg hover:brightness-95 hover:shadow-[0_0_16px_rgba(255,138,36,0.35)]">
                   Dashboard
                 </Link>
                 <button
@@ -65,7 +65,7 @@ export function PublicLayout() {
                 </NavLink>
                 <Link
                   to="/signup"
-                  className="ml-2 rounded-md bg-forge-lime px-3 py-1.5 text-sm font-semibold text-forge-bg hover:brightness-95"
+                  className="ml-2 rounded-md bg-forge-orange px-3 py-1.5 text-sm font-semibold text-forge-bg hover:brightness-95 hover:shadow-[0_0_16px_rgba(255,138,36,0.35)]"
                 >
                   Get started
                 </Link>
