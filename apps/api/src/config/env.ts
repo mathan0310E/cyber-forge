@@ -77,10 +77,16 @@ export const EnvSchema = z.object({
   GITHUB_OAUTH_CALLBACK_URL: str('http://localhost:3001/api/v1/integrations/github/callback'),
   INTEGRATION_ENCRYPTION_KEY: str(''),
 
+  VERCEL_CLIENT_ID: str(''),
+  VERCEL_CLIENT_SECRET: str(''),
+  VERCEL_OAUTH_CALLBACK_URL: str('http://localhost:3001/api/v1/integrations/vercel/callback'),
+
   WOLF_FORGE_ADMIN_UIDS: str(''),
 
   DEPLOYMENT_PROVIDER: str(''),
   DEPLOYMENT_API_TOKEN: str(''),
+  DEPLOYMENT_VERCEL_TEAM_ID: str(''),
+  DEPLOYMENT_VERCEL_PROJECT_ID: str(''),
 
   QUOTA_MAX_CONCURRENT_BUILDS: int(1),
   QUOTA_MAX_REPAIR_ATTEMPTS: int(2),
@@ -126,6 +132,13 @@ export const ConfigSchema = EnvSchema.transform((env) => ({
   github: {
     oauthConfigured: Boolean(env.GITHUB_CLIENT_ID && env.GITHUB_CLIENT_SECRET),
     encryptionConfigured: env.INTEGRATION_ENCRYPTION_KEY.length >= 32,
+  },
+  vercelOAuth: {
+    oauthConfigured: Boolean(env.VERCEL_CLIENT_ID && env.VERCEL_CLIENT_SECRET),
+    encryptionConfigured: env.INTEGRATION_ENCRYPTION_KEY.length >= 32,
+    callbackUrl: env.VERCEL_OAUTH_CALLBACK_URL,
+    clientId: env.VERCEL_CLIENT_ID,
+    clientSecret: env.VERCEL_CLIENT_SECRET,
   },
   deployment: {
     provider: env.DEPLOYMENT_PROVIDER,

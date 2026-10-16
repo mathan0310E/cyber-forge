@@ -76,26 +76,57 @@ export class GitHubIntegrationService {
       connectedAt: string;
       updatedAt: string;
       lastError: string | null;
+      skipped: boolean;
     }>(COLLECTIONS.integrations, this.docId(ownerUid));
+
+    const oauthConfigured = Boolean(this.config.clientId && this.config.clientSecret);
+    const oauthAvailable = oauthConfigured && this.config.encryptionKey.length >= 32;
+    // A stored doc may exist solely to record "skip for now"; only a persisted
+    // token counts as connected.
+    const connected = Boolean(doc?.token);
 
     return {
       provider: 'github',
-      status: doc ? 'connected' : 'disconnected',
+      status: connected ? 'connected' : 'disconnected',
       accountLabel: doc?.account ?? null,
       scopes: doc?.scopes ?? [],
       configured: this.config.clientId.length > 0 || this.config.encryptionKey.length >= 32,
-      setupHint: this.hintFor(ownerUid, Boolean(doc)),
+      setupHint: this.hintFor(ownerUid, connected, oauthAvailable),
       connectedAt: doc?.connectedAt ?? null,
       updatedAt: doc?.updatedAt ?? null,
       lastError: doc?.lastError ?? null,
+      skipped: Boolean(doc?.skipped),
+      oauthAvailable,
     };
   }
 
-  private hintFor(ownerUid: string, hasToken: boolean): string {
+  /**
+   * Persists the user's explicit "skip this for now" choice. Uses read-modify-
+   * write so the flag works whether or not a connected integration exists, and
+   * never drops an already-stored token.
+   */
+  async setSkipped(ownerUid: string, skipped: boolean): Promise<void> {
+    const id = this.docId(ownerUid);
+    const existing = await this.db.get<Record<string, unknown>>(COLLECTIONS.integrations, id);
+    await this.db.set<object>(COLLECTIONS.integrations, id, {
+      ...(existing ?? {}),
+      skipped,
+      updatedAt: new Date().toISOString(),
+    });
+  }
+
+  private hintFor(ownerUid: string, hasToken: boolean, oauthAvailable: boolean): string {
     void ownerUid;
-    if (hasToken) return 'Connected. Wolf Forge can create repositories and push code as this account.';
-    if (this.config.clientId) {
+    if (hasToken) {
+      return this.config.clientSecret
+        ? 'Connected via GitHub OAuth. Wolf Forge can create repositories and push code as this account.'
+        : 'Connected. Wolf Forge can create repositories and push code as this account.';
+    }
+    if (oauthAvailable) {
       return 'Connect GitHub with OAuth, or paste a personal access token with repo scope.';
+    }
+    if (this.config.clientId && !this.config.clientSecret) {
+      return 'OAuth is half-configured: GITHUB_CLIENT_ID is set but GITHUB_CLIENT_SECRET is missing. Paste a personal access token, or fix the server configuration.';
     }
     return this.config.encryptionKey.length >= 32
       ? 'No credentials configured. Paste a personal access token (scope: repo or public_repo), or set GITHUB_CLIENT_ID/SECRET for OAuth.'

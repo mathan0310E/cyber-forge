@@ -19,6 +19,8 @@ import { ArtifactStore } from './services/artifacts.js';
 import { UsageService } from './usage/service.js';
 import { AuditService } from './audit/service.js';
 import { GitHubIntegrationService } from './integrations/github.js';
+import { GitHubOAuthService } from './integrations/github-oauth.js';
+import { OAuthStateService } from './integrations/oauth-state.js';
 import { VercelDeploymentService } from './integrations/vercel.js';
 import { DeploymentService } from './deployments/service.js';
 import { initPreviewRegistry } from './builds/preview-registry.js';
@@ -89,8 +91,19 @@ async function bootstrap(): Promise<{ app: express.Express; config: Config }> {
     callbackUrl: config.env.GITHUB_OAUTH_CALLBACK_URL,
     encryptionKey: config.env.INTEGRATION_ENCRYPTION_KEY,
   });
-  const deployments = new DeploymentService(store);
-  const vercel = new VercelDeploymentService(store);
+  const oauthState = new OAuthStateService(store);
+  const githubOAuth = new GitHubOAuthService(github, oauthState, {
+    clientId: config.env.GITHUB_CLIENT_ID,
+    clientSecret: config.env.GITHUB_CLIENT_SECRET,
+    callbackUrl: config.env.GITHUB_OAUTH_CALLBACK_URL,
+  });
+  const vercel = new VercelDeploymentService(store, {
+    clientId: config.env.VERCEL_CLIENT_ID,
+    clientSecret: config.env.VERCEL_CLIENT_SECRET,
+    callbackUrl: config.env.VERCEL_OAUTH_CALLBACK_URL,
+    encryptionKey: config.env.INTEGRATION_ENCRYPTION_KEY,
+  });
+  const deployments = new DeploymentService(store, vercel);
 
   const systemDeps: SystemDeps = {
     config,
@@ -157,6 +170,11 @@ async function bootstrap(): Promise<{ app: express.Express; config: Config }> {
     const path = req.path;
     if (path === '/health') return next();
     if (path.startsWith('/api/v1/auth')) return next();
+    // Provider OAuth callbacks are public: they are authenticated by the
+    // one-time `state` binding verified inside the callback handler, not by a
+    // browser session (the authorization window runs outside our origin).
+    if (path.startsWith('/api/v1/integrations/github/callback')) return next();
+    if (path.startsWith('/api/v1/integrations/vercel/callback')) return next();
     if (path.startsWith('/preview/')) return next();
     return requireAuth(req, _res, next);
   });
@@ -213,6 +231,8 @@ async function bootstrap(): Promise<{ app: express.Express; config: Config }> {
       config,
       store,
       github,
+      githubOAuth,
+      oauthState,
       vercel,
       artifacts,
       audit,

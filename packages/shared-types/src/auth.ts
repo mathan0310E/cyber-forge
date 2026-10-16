@@ -55,3 +55,12 @@ export const UpdateProfileRequestSchema = z.object({
   displayName: z.string().trim().min(1).max(80),
 });
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileRequestSchema>;
+
+/**
+ * Body for POST /auth/google — exchange a Firebase ID token minted by the
+ * client-side Google sign-in for a Wolf Forge session.
+ */
+export const GoogleSignInRequestSchema = z.object({
+  idToken: z.string().min(10).max(8192),
+});
+export type GoogleSignInRequest = z.infer<typeof GoogleSignInRequestSchema>;

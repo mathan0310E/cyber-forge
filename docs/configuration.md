@@ -42,6 +42,14 @@ an honest "setup required" state in the UI when its credentials are missing.
 `VITE_FIREBASE_APP_ID` — the non-secret browser-side Firebase config, wired to
 the frontend auth forms. Not required for the local auth driver.
 
+**Google sign-in:** set the four `VITE_FIREBASE_*` variables, enable the Google
+provider in Firebase Authentication, and add your browser origin (e.g.
+`http://localhost:5173`) to the authorized domains. The "Continue with Google"
+button then appears on `/login` and `/signup`; after signing in, the app
+automatically checks GitHub and Vercel connections and starts any missing
+OAuth flow from `/app/connect`. The backend must run in the `firebase` auth
+driver so it can verify the exchanged ID token.
+
 ## AI providers
 
 ### OpenRouter (primary, free-first)
@@ -96,12 +104,24 @@ the frontend auth forms. Not required for the local auth driver.
 | `GITHUB_OAUTH_CALLBACK_URL` | Public callback URL (must match the OAuth App). |
 | `INTEGRATION_ENCRYPTION_KEY` | 32-byte base64 key for encrypting tokens at rest. Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. |
 
-### Deployment
+### Vercel (per-user OAuth)
+
+| Variable | Purpose |
+| --- | --- |
+| `VERCEL_CLIENT_ID` | Vercel OAuth App client id. |
+| `VERCEL_CLIENT_SECRET` | Vercel OAuth App client secret. |
+| `VERCEL_OAUTH_CALLBACK_URL` | Public callback URL (must match the OAuth App). |
+
+With these set, users can connect their own Vercel account (tokens are
+encrypted at rest with `INTEGRATION_ENCRYPTION_KEY`).
+
+### Deployment (server account fallback)
 
 | Variable | Purpose |
 | --- | --- |
 | `DEPLOYMENT_PROVIDER` | `vercel` is the implemented provider; empty disables deployment. |
-| `DEPLOYMENT_API_TOKEN` | Vercel API token. |
+| `DEPLOYMENT_API_TOKEN` | Vercel API token for the operator's shared account. Used when a user has not connected their own Vercel account. |
+| `DEPLOYMENT_VERCEL_TEAM_ID` / `DEPLOYMENT_VERCEL_PROJECT_ID` | Optional team/project scoping for deployment targets. |
 
 ### Admin
 
@@ -123,7 +143,10 @@ count, source bytes, output tokens, daily builds, requests per minute).
   fields are ignored until configured.
 - No `GITHUB_CLIENT_ID`/`SECRET` → GitHub connect shows a setup-required state;
   ZIP export still works.
-- No `DEPLOYMENT_PROVIDER`/token → the deploy action shows a setup-required
-  state; local preview, export, GitHub push still work.
+- No `VERCEL_CLIENT_ID`/`SECRET` and no `DEPLOYMENT_API_TOKEN` → the deploy
+  action shows a setup-required state; local preview, export, GitHub push
+  still work.
+- No `VERCEL_CLIENT_ID`/`SECRET` but a `DEPLOYMENT_API_TOKEN` is set →
+  deployments run with the server account; per-user OAuth connect is hidden.
 - Docker missing → sandbox falls back to reduced-isolation local driver and
   logs a warning that it is not suitable for untrusted projects.
