@@ -73,6 +73,38 @@ export function ConnectIntegrationsPage() {
     list.forEach(upsert);
     return list;
   }, [upsert]);
+  const autoStart = useCallback(
+    async (provider: Provider, list?: Integration[]) => {
+      // Guard: only auto-start providers that can actually run OAuth.
+      const data = list ?? (await refresh());
+      const integ = data.find((x) => x.provider === provider);
+      if (integ && (integ.status === 'connected' || integ.skipped || !integ.oauthAvailable)) {
+        return;
+      }
+      setCells((prev) =>
+        prev.map((c) => (c.provider === provider ? { ...c, phase: 'connecting', error: null } : c)),
+      );
+      try {
+        await startOAuth(provider, '/app/connect');
+        // startOAuth navigates away; if it returns, the provider was reachable but
+        // something prevented navigation — treat as failed to avoid an infinite loop.
+        throw new Error('The provider authorization window did not open.');
+      } catch (e) {
+        setCells((prev) =>
+          prev.map((c) =>
+            c.provider === provider
+              ? {
+                  ...c,
+                  phase: 'failed',
+                  error: e instanceof Error ? e.message : 'Connection failed. Retry or skip.',
+                }
+              : c,
+          ),
+        );
+      }
+    },
+    [refresh],
+  );
 
   useEffect(() => {
     if (!user) return;
@@ -114,38 +146,6 @@ export function ConnectIntegrationsPage() {
     };
   }, [user, navigate, refresh, autoStart]);
 
-  const autoStart = useCallback(
-    async (provider: Provider, list?: Integration[]) => {
-      // Guard: only auto-start providers that can actually run OAuth.
-      const data = list ?? (await refresh());
-      const integ = data.find((x) => x.provider === provider);
-      if (integ && (integ.status === 'connected' || integ.skipped || !integ.oauthAvailable)) {
-        return;
-      }
-      setCells((prev) =>
-        prev.map((c) => (c.provider === provider ? { ...c, phase: 'connecting', error: null } : c)),
-      );
-      try {
-        await startOAuth(provider, '/app/connect');
-        // startOAuth navigates away; if it returns, the provider was reachable but
-        // something prevented navigation — treat as failed to avoid an infinite loop.
-        throw new Error('The provider authorization window did not open.');
-      } catch (e) {
-        setCells((prev) =>
-          prev.map((c) =>
-            c.provider === provider
-              ? {
-                  ...c,
-                  phase: 'failed',
-                  error: e instanceof Error ? e.message : 'Connection failed. Retry or skip.',
-                }
-              : c,
-          ),
-        );
-      }
-    },
-    [refresh],
-  );
 
   // Re-check when returning from a provider callback (?connected=github|vercel).
   useEffect(() => {
