@@ -36,33 +36,124 @@ export interface AiServices {
 }
 
 const ROLE_PREFERENCES: RolePreference[] = [
+  // Best-in-class FREE picks per task (Oct 2026, verified via live catalogue):
+  //  - planner/review: long-reasoning orchestrators with 1M context.
+  //  - codegen/ui-refine/debug: agentic coding specialists + fast throughput.
+  // Substrings match against the full OpenRouter model id; order = priority.
   {
     role: 'planner',
-    preferred: ['gemini', 'llama', 'nemotron', 'qwen', 'mistral', 'deepseek'],
+    preferred: ['nemotron-3-ultra', 'nemotron-3-super', 'inkling', 'gemma-4', 'laguna-s-2.1', 'gemini', 'llama', 'qwen', 'mistral', 'deepseek'],
   },
   {
     role: 'codegen',
-    preferred: ['llama', 'nemotron', 'qwen', 'mistral', 'codestral', 'deepseek'],
+    preferred: ['laguna-s-2.1', 'laguna-xs-2.1', 'north-mini-code', 'nemotron-3.5-lightning', 'nemotron-3-super', 'llama', 'qwen', 'mistral', 'codestral', 'deepseek'],
   },
   {
     role: 'ui-refine',
-    preferred: ['llama', 'nemotron', 'gemini', 'qwen', 'mistral'],
+    preferred: ['laguna-s-2.1', 'gemma-4', 'nemotron-3.5-lightning', 'inkling', 'llama', 'gemini', 'qwen', 'mistral'],
   },
   {
     role: 'debug',
-    preferred: ['llama', 'nemotron', 'deepseek', 'qwen'],
+    preferred: ['laguna-s-2.1', 'north-mini-code', 'nemotron-3-nano', 'llama', 'nemotron', 'deepseek', 'qwen'],
   },
   {
     role: 'review',
-    preferred: ['gemini', 'llama', 'nemotron', 'mistral'],
+    preferred: ['nemotron-3-ultra', 'gemma-4', 'laguna-s-2.1', 'gemini', 'llama', 'mistral'],
   },
   {
     role: 'fallback',
-    preferred: [],
+    preferred: ['openrouter/free'],
   },
 ];
 
 let singleton: AiServices | undefined;
+
+/**
+ * Declared-free OpenRouter models, pinned per task role (Oct 2026 snapshot).
+ * Used ONLY when live catalogue discovery returns nothing (bad/expired key,
+ * network outage). Every `:free`-suffixed OpenRouter endpoint bills $0, so
+ * these register as `verified-free` and remain dispatchable in free-only
+ * mode. The next successful live refresh replaces them with priced entries;
+ * anything the provider reports as paid is never dispatched. Poolside :free
+ * endpoints are scheduled to expire 31 Oct 2026 — the Nemotron/Gemma entries
+ * are the longer-lived backups.
+ */
+const DECLARED_FREE_MODELS: Array<{
+  modelId: string;
+  displayName: string;
+  contextLength: number;
+  roles: AiTaskRole[];
+}> = [
+  // --- codegen: agentic coding specialists (Terminal-Bench grade) ---------
+  {
+    modelId: 'poolside/laguna-s-2.1:free',
+    displayName: 'Poolside Laguna S 2.1 (free)',
+    contextLength: 262_144,
+    roles: ['codegen', 'ui-refine', 'debug', 'fallback'],
+  },
+  {
+    modelId: 'poolside/laguna-xs-2.1:free',
+    displayName: 'Poolside Laguna XS 2.1 (free)',
+    contextLength: 262_144,
+    roles: ['codegen', 'fallback'],
+  },
+  {
+    modelId: 'cohere/north-mini-code:free',
+    displayName: 'Cohere North Mini Code (free)',
+    contextLength: 256_000,
+    roles: ['codegen', 'debug', 'fallback'],
+  },
+  // --- planner/review: 1M-ctx reasoning orchestrators ----------------------
+  {
+    modelId: 'nvidia/nemotron-3-ultra-550b-a55b:free',
+    displayName: 'NVIDIA Nemotron 3 Ultra (free)',
+    contextLength: 1_000_000,
+    roles: ['planner', 'review', 'fallback'],
+  },
+  {
+    modelId: 'nvidia/nemotron-3-super-120b-a12b:free',
+    displayName: 'NVIDIA Nemotron 3 Super (free)',
+    contextLength: 262_144,
+    roles: ['planner', 'codegen', 'review', 'fallback'],
+  },
+  {
+    modelId: 'thinkingmachines/inkling:free',
+    displayName: 'Thinking Machines Inkling (free)',
+    contextLength: 1_048_576,
+    roles: ['planner', 'ui-refine', 'review', 'fallback'],
+  },
+  // --- fast throughput / general backup -----------------------------------
+  {
+    modelId: 'nvidia/nemotron-3.5-lightning:free',
+    displayName: 'NVIDIA Nemotron 3.5 Lightning (free)',
+    contextLength: 1_000_000,
+    roles: ['codegen', 'ui-refine', 'debug', 'fallback'],
+  },
+  {
+    modelId: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+    displayName: 'NVIDIA Nemotron 3 Nano Omni Reasoning (free)',
+    contextLength: 256_000,
+    roles: ['debug', 'fallback'],
+  },
+  {
+    modelId: 'google/gemma-4-31b-it:free',
+    displayName: 'Google Gemma 4 31B IT (free)',
+    contextLength: 262_144,
+    roles: ['planner', 'ui-refine', 'review', 'fallback'],
+  },
+  {
+    modelId: 'google/gemma-4-26b-a4b-it:free',
+    displayName: 'Google Gemma 4 26B IT (free)',
+    contextLength: 262_144,
+    roles: ['planner', 'review', 'fallback'],
+  },
+  {
+    modelId: 'openrouter/free',
+    displayName: 'OpenRouter auto-router (free)',
+    contextLength: 200_000,
+    roles: ['fallback'],
+  },
+];
 
 /**
  * Loads previously-saved operator overrides (enabled flags and role sets) from
@@ -139,6 +230,42 @@ export async function initAiServices(config: Config, store: DocStore): Promise<A
     );
   } catch (e) {
     logger().warn({ err: String(e) }, 'initial AI catalogue refresh failed (will retry)');
+  }
+
+  // Fallback catalogue: if live discovery returned nothing (bad/missing key,
+  // outage), register the declared-free list so every role has a dispatchable
+  // model. These are `:free`-suffixed endpoints ($0 by construction) so they
+  // register as verified-free and remain dispatchable in free-only mode. The
+  // next successful live refresh replaces them with priced entries; anything
+  // the provider reports as paid is never dispatched.
+  if (registry.all().length === 0) {
+    for (const declared of DECLARED_FREE_MODELS) {
+      registry.upsertModel({
+        id: `openrouter:${declared.modelId}`,
+        provider: 'openrouter',
+        modelId: declared.modelId,
+        displayName: declared.displayName,
+        enabled: true,
+        capabilities: ['chat', 'json-mode', 'long-context'],
+        eligibility: 'verified-free',
+        contextLength: declared.contextLength,
+        maxOutputTokens: null,
+        roles: declared.roles,
+        health: 'unknown',
+        lastCheckedAt: null,
+        lastSuccessAt: null,
+        failureCount: 0,
+        timeoutMs: declared.roles.includes('codegen') ? 180_000 : 90_000,
+        promptPricePerMillion: 0,
+        completionPricePerMillion: 0,
+        blockedReason: null,
+        isCustom: true,
+      });
+    }
+    logger().warn(
+      { models: DECLARED_FREE_MODELS.length },
+      'live catalogue empty — registered declared-free fallback list (every role has a dispatchable :free model)',
+    );
   }
 
   singleton = services;

@@ -73,6 +73,8 @@ export class PreviewRegistry {
     command: string;
     args: string[];
     port: number;
+    /** Container-side port; defaults to `port` (local driver ignores it). */
+    publishPort?: number;
     /** Milliseconds to wait for the server to answer before giving up. */
     readyTimeoutMs: number;
   }): Promise<PreviewHandle> {
@@ -90,7 +92,7 @@ export class PreviewRegistry {
       timeoutMs: input.readyTimeoutMs,
       label: 'preview',
       hostPort: input.port,
-      publishPort: input.port,
+      publishPort: input.publishPort ?? input.port,
     });
 
     const ready = await waitForHttp(`http://127.0.0.1:${handle.hostPort}/`, input.readyTimeoutMs);

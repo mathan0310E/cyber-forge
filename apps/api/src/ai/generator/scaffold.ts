@@ -159,13 +159,19 @@ dist
 /**
  * Minimal static file server used to preview the no-build scaffold. Shipping
  * our own server avoids `npx`, which would need network access in the sandbox.
+ * Args: <rootDir> <port> <host>. Root defaults to cwd for backwards compat.
+ * The server binds to 0.0.0.0 inside the sandbox container (container
+ * loopback is unreachable from the host through published ports on some
+ * runtimes); the port is published to the host loopback only, so the
+ * preview stays unreachable from the wider network.
  */
 const STATIC_SERVE_SCRIPT = `import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 
-const ROOT = resolve(process.cwd());
-const PORT = Number(process.env.PORT || 4173);
+const ROOT = resolve(process.argv[2] || process.cwd());
+const PORT = Number(process.argv[3] || process.env.PORT || 4173);
+const HOST = process.argv[4] || process.env.HOST || '127.0.0.1';
 
 // If a production build output (dist) exists, serve it instead of the source
 // tree so the preview reflects the built site.
@@ -187,7 +193,7 @@ const TYPES = {
   '.txt': 'text/plain; charset=utf-8',
 };
 
-createServer(async (req, res) => {
+async function handler(req, res) {
   try {
     const url = new URL(req.url || '/', 'http://localhost');
     let pathname = decodeURIComponent(url.pathname);
@@ -220,8 +226,14 @@ createServer(async (req, res) => {
   } catch {
     res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' }).end('Not found');
   }
-}).listen(PORT, '127.0.0.1', () => {
-  console.log('preview listening on ' + PORT);
+}
+const server = createServer(handler);
+server.listen(PORT, HOST, () => {
+  console.log('preview listening on ' + HOST + ':' + PORT);
+});
+server.on('error', (err) => {
+  console.error('preview failed to listen on ' + HOST + ':' + PORT + ': ' + String(err && err.message || err));
+  process.exit(1);
 });
 `;
 

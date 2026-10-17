@@ -31,7 +31,7 @@ const required = (name: string) =>
 
 export const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
-  PORT: int(3001),
+  PORT: int(3101),
   WEB_ORIGIN: str('http://localhost:5173'),
 
   WOLF_FORGE_DATA_DRIVER: z.enum(['auto', 'firestore', 'local']).default('auto'),
@@ -74,12 +74,12 @@ export const EnvSchema = z.object({
 
   GITHUB_CLIENT_ID: str(''),
   GITHUB_CLIENT_SECRET: str(''),
-  GITHUB_OAUTH_CALLBACK_URL: str('http://localhost:3001/api/v1/integrations/github/callback'),
+  GITHUB_OAUTH_CALLBACK_URL: str('http://localhost:3101/api/v1/integrations/github/callback'),
   INTEGRATION_ENCRYPTION_KEY: str(''),
 
   VERCEL_CLIENT_ID: str(''),
   VERCEL_CLIENT_SECRET: str(''),
-  VERCEL_OAUTH_CALLBACK_URL: str('http://localhost:3001/api/v1/integrations/vercel/callback'),
+  VERCEL_OAUTH_CALLBACK_URL: str('http://localhost:3101/api/v1/integrations/vercel/callback'),
 
   WOLF_FORGE_ADMIN_UIDS: str(''),
 

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="evtHero" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b0d12"/>
+      <stop offset="100%" stop-color="#090a0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" rx="24" fill="#07090d"/>
+  <rect x="4" y="4" width="792" height="592" rx="24" fill="#ffffff" opacity="0.06"/>
+  <rect x="32" y="32" width="736" height="44" rx="10" fill="#090a0e"/>
+  <circle cx="48" cy="54" r="3" fill="#ff5f56"/>
+  <circle cx="66" cy="54" r="3" fill="#ffbd2e"/>
+  <circle cx="84" cy="54" r="3" fill="#27c93f"/>
+  <text x="108" y="58" font-family="system-ui, sans-serif" font-size="13" fill="#5a6472">https://demo.wf/event</text>
+  <rect x="48" y="104" width="704" height="220" rx="16" fill="url(#evtHero)"/>
+  <text x="72" y="158" font-family="'Space Grotesk', system-ui, sans-serif" font-size="30" font-weight="800" fill="#ff8a24">A one-day conference.</text>
+  <text x="72" y="186" font-family="system-ui, sans-serif" font-size="15" fill="#9aa4b2">Date, location and theme.</text>
+  <rect x="72" y="210" width="150" height="38" rx="8" fill="#19d3f3"/>
+  <text x="100" y="232" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#07090d">Register</text>
+  <rect x="48" y="352" width="704" height="156" rx="14" fill="#090a0e"/>
+  <text x="72" y="380" font-family="'Space Grotesk', system-ui, sans-serif" font-size="20" font-weight="700" fill="#ff8a24">Agenda</text>
+  <g font-family="system-ui, sans-serif" fill="#9aa4b2" font-size="13">
+    <rect x="72" y="400" width="704" height="44" rx="6" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="92" y="422" fill="#f5f5f5" font-weight="600">09:00 — Opening</text>
+    <text x="92" y="440" font-size="12" fill="#9aa4b2">Welcome and framing.</text>
+    <rect x="72" y="456" width="704" height="44" rx="6" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="92" y="474" fill="#f5f5f5" font-weight="600">11:00 — Session</text>
+    <text x="92" y="492" font-size="12" fill="#9aa4b2">A practical deep dive.</text>
+    <rect x="72" y="512" width="704" height="44" rx="6" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="92" y="530" fill="#f5f5f5" font-weight="600">15:00 — Workshop</text>
+    <text x="92" y="548" font-size="12" fill="#9aa4b2">Hands-on session.</text>
+  </g>
+  <rect x="48" y="532" width="120" height="30" rx="6" fill="#141922"/>
+  <text x="64" y="554" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#ff8a24">Event registration</text>
+  <text x="650" y="556" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#19d3f3">Dark · Register</text>
+</svg>

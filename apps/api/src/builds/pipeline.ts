@@ -189,16 +189,20 @@ export class GenerationPipeline {
       if (signal.aborted) throw cancellationError();
 
       await report.state('StartingPreview', 'Starting preview', STAGE_PROGRESS.StartingPreview);
-      const previewPort = await getFreePort(4100, 4700);
+      const previewPort = await getFreePort(
+        this.deps.config.env.SANDBOX_PREVIEW_PORT_RANGE_START,
+        this.deps.config.env.SANDBOX_PREVIEW_PORT_RANGE_END,
+      );
       const preview = await this.deps.previews.start({
         projectId: job.projectId,
         versionId: job.resultVersionId!,
         ownerUid: job.ownerUid,
         workspaceDir: this.previewDir(job.id),
         command: 'node',
-        args: ['.wolf-forge-serve.mjs'],
+        args: ['.wolf-forge-serve.mjs', this.previewDir(job.id), String(previewPort), '0.0.0.0'],
         port: previewPort,
-        readyTimeoutMs: 30_000,
+        publishPort: previewPort,
+        readyTimeoutMs: 120_000,
       });
 
       const previewUrl = `/preview/${preview.id}?token=${preview.accessToken}`;

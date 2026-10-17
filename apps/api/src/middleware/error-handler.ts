@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { ZodError } from 'zod';
 import { ApiError, isApiError } from '../services/errors.js';
 import { logger } from '../services/logger.js';
 import { redact } from '../services/redact.js';
@@ -6,7 +7,8 @@ import { redact } from '../services/redact.js';
 /**
  * Terminal error handler.
  *
- * Known ApiErrors are serialized as-is. Everything else is logged with full
+ * Known ApiErrors are serialized as-is. Zod validation failures become 400s
+ * with the first issue surfaced. Everything else is logged with full
  * detail and reported to the client as a generic internal error, so stack
  * traces, provider payloads and credentials never reach the browser.
  */
@@ -17,6 +19,22 @@ export function errorHandler(
   _next: NextFunction,
 ): void {
   const requestId = req.requestId ?? 'unknown';
+
+  if (err instanceof ZodError) {
+    const first = err.issues[0];
+    const where = first?.path.length ? ` (${first.path.join('.')})` : '';
+    const apiErr = ApiError.validation(`${first?.message ?? 'Invalid input'}${where}`, {
+      issues: err.issues.map((i) => ({ path: i.path, message: i.message, code: i.code })),
+    });
+    logger().info(
+      { requestId, code: apiErr.code, status: apiErr.status, path: req.path },
+      apiErr.message,
+    );
+    res.status(apiErr.status).json({
+      error: { ...apiErr.toJSON(), requestId },
+    });
+    return;
+  }
 
   if (isApiError(err)) {
     if (err.status >= 500) {

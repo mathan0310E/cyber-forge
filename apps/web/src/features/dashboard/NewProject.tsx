@@ -27,11 +27,23 @@ export function NewProject() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const initialPrompt = (location.state as { prompt?: string } | null)?.prompt ?? '';
+  const state = location.state as { prompt?: string; category?: string } | null;
+  const initialPrompt = state?.prompt ?? '';
+  const initialCategory = (state?.category as
+    | 'portfolio'
+    | 'business'
+    | 'landing-page'
+    | 'blog'
+    | 'ecommerce'
+    | 'saas-dashboard'
+    | 'education'
+    | 'event'
+    | 'documentation'
+    | 'custom') ?? 'landing-page';
 
   const [prompt, setPrompt] = useState(initialPrompt);
   const [name, setName] = useState('');
-  const [category, setCategory] = useState('landing-page');
+  const [category, setCategory] = useState<string>(initialCategory);
   const [framework, setFramework] = useState('vite-react-ts');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

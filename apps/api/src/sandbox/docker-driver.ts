@@ -51,14 +51,18 @@ export class DockerSandboxDriver implements SandboxDriver {
     }
   }
 
-  private baseArgs(workspaceDir: string, network: 'none' | 'bridge'): string[] {
+  private baseArgs(workspaceDir: string, network: 'none' | 'bridge' | 'preview'): string[] {
     const env = this.config.env;
+    // 'preview' resolves to a dedicated internal bridge (created on demand):
+    // port publishing needs NAT, which 'none' lacks, but the network has no
+    // external route so the container still cannot reach the outside world.
+    const dockerNetwork = network === 'preview' ? 'wolf-forge-preview' : network;
     const args = [
       'run',
       '--rm',
       '--init',
       '--network',
-      network,
+      dockerNetwork,
       '--memory',
       `${env.SANDBOX_MEMORY_MB}m`,
       '--memory-swap',
@@ -136,18 +140,48 @@ export class DockerSandboxDriver implements SandboxDriver {
     return needsNetwork && isInstall ? 'bridge' : 'none';
   }
 
+  private previewNetworkReady = false;
+
+  /**
+   * Creates the isolated preview bridge once per process. Internal (no
+   * external route) but with NAT for published-port loopback access.
+   */
+  private async ensurePreviewNetwork(): Promise<void> {
+    if (this.previewNetworkReady) return;
+    const res = await runProcess('docker', ['network', 'inspect', 'wolf-forge-preview'], {
+      cwd: process.cwd(),
+      env: safeEnv(),
+      timeoutMs: 15_000,
+    });
+    if (res.exitCode !== 0) {
+      await runProcess('docker', ['network', 'create', '--internal', '--driver', 'bridge', 'wolf-forge-preview'], {
+        cwd: process.cwd(),
+        env: safeEnv(),
+        timeoutMs: 30_000,
+      });
+    }
+    this.previewNetworkReady = true;
+  }
+
   /**
    * Starts a long-running preview server detached, then polls the published
    * port until it actually answers. The URL is only reported once the service
    * responds, so a preview is never claimed before it works.
+   *
+   * NOTE: the preview container uses a private bridge network, not
+   * `--network none`: port publishing requires a network stack with NAT, and
+   * with `none` the mapping is created but never reachable from the host.
+   * The server still binds to the container loopback and is published only
+   * to the host loopback, so it stays unreachable from the wider network.
    */
   async startServer(request: ExecRequest): Promise<{ handle: string; hostPort: number }> {
     const hostPort = request.hostPort;
     if (!hostPort) throw ApiError.internal('startServer requires a hostPort');
 
     const containerName = `wolf-forge-preview-${crypto.randomBytes(6).toString('hex')}`;
+    await this.ensurePreviewNetwork();
     const args = [
-      ...this.baseArgs(request.workspaceDir, 'none'),
+      ...this.baseArgs(request.workspaceDir, 'preview'),
       '-p',
       // Bind to loopback only: the preview is reachable by the API and the
       // user's browser session, never from the wider network.

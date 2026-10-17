@@ -13,13 +13,17 @@ export class ApiClientError extends Error {
 
   constructor(status: number, message: string, code = 'api_error', details?: unknown) {
     super(message);
+    this.name = 'ApiClientError';
     this.status = status;
     this.code = code;
     this.details = details;
   }
 }
 
-const API_BASE = '/api/v1';
+const RAW_API_BASE =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/+$/, '') ?? '';
+/** Same-origin `/api/v1` in dev (Vite proxies it); absolute API origin in prod. */
+const API_BASE = RAW_API_BASE ? `${RAW_API_BASE}/api/v1` : '/api/v1';
 
 class ApiClient {
   private token: string | null = null;
@@ -60,10 +64,23 @@ class ApiClient {
 
     if (!res.ok) {
       let errorBody: ApiErrorBody = {};
+      let nonJson = false;
       try {
         errorBody = (await res.json()) as ApiErrorBody;
       } catch {
-        /* non-JSON error body */
+        /* non-JSON error body (e.g. a hosting fallback page or a dead dev proxy) */
+        nonJson = true;
+      }
+      if (nonJson) {
+        // The request never reached the Express API: the dev proxy is down, or
+        // the deployed host rewrote /api/* to index.html (Firebase Hosting
+        // SPA fallback). The backend's own errors are always JSON.
+        const hint =
+          'The API server did not respond at /api/v1. ' +
+          'In dev, start it with `pnpm --filter @wolf-forge/api dev` (port 3001). ' +
+          'In production, set VITE_API_BASE_URL to the deployed API origin ' +
+          '(and add the web origin to WEB_ORIGIN for CORS).';
+        throw new ApiClientError(res.status, hint, 'api_not_reachable');
       }
       throw new ApiClientError(
         res.status,

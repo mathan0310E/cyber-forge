@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <defs>
+    <linearGradient id="saasHero" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b0d12"/>
+      <stop offset="100%" stop-color="#090a0e"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" rx="24" fill="#07090d"/>
+  <rect x="4" y="4" width="792" height="592" rx="24" fill="#ffffff" opacity="0.06"/>
+  <rect x="32" y="32" width="736" height="44" rx="10" fill="#090a0e"/>
+  <circle cx="48" cy="54" r="3" fill="#ff5f56"/>
+  <circle cx="66" cy="54" r="3" fill="#ffbd2e"/>
+  <circle cx="84" cy="54" r="3" fill="#27c93f"/>
+  <text x="108" y="58" font-family="system-ui, sans-serif" font-size="13" fill="#5a6472">https://demo.wf/saas-dashboard</text>
+  <rect x="48" y="104" width="180" height="432" rx="12" fill="#090a0e"/>
+  <rect x="62" y="124" width="152" height="6" rx="3" fill="#141922"/>
+  <rect x="62" y="148" width="120" height="6" rx="3" fill="#141922"/>
+  <rect x="62" y="172" width="90" height="6" rx="3" fill="#141922"/>
+  <rect x="248" y="104" width="504" height="220" rx="16" fill="url(#saasHero)"/>
+  <text x="272" y="158" font-family="'Space Grotesk', system-ui, sans-serif" font-size="28" font-weight="800" fill="#19d3f3">Everything in one view.</text>
+  <text x="272" y="186" font-family="system-ui, sans-serif" font-size="15" fill="#9aa4b2">Product summary.</text>
+  <rect x="272" y="214" width="464" height="36" rx="8" fill="#9b5cff"/>
+  <text x="304" y="236" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#ffffff">Try the dashboard</text>
+  <rect x="248" y="352" width="504" height="156" rx="14" fill="#090a0e"/>
+  <text x="272" y="380" font-family="'Space Grotesk', system-ui, sans-serif" font-size="20" font-weight="700" fill="#19d3f3">Live metrics</text>
+  <g font-family="system-ui, sans-serif" fill="#9aa4b2" font-size="13">
+    <rect x="272" y="400" width="144" height="100" rx="8" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="292" y="428" fill="#f5f5f5" font-weight="600">Revenue</text>
+    <text x="292" y="452" font-size="12">+12.4%</text>
+    <rect x="432" y="400" width="144" height="100" rx="8" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="452" y="428" fill="#f5f5f5" font-weight="600">Users</text>
+    <text x="452" y="452" font-size="12">+8.1%</text>
+    <rect x="592" y="400" width="144" height="100" rx="8" fill="#141922" stroke="#232b38" stroke-width="1.5"/>
+    <text x="612" y="428" fill="#f5f5f5" font-weight="600">Churn</text>
+    <text x="612" y="452" font-size="12">−2.3%</text>
+  </g>
+  <rect x="48" y="532" width="160" height="30" rx="6" fill="#141922"/>
+  <text x="64" y="554" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#19d3f3">SaaS dashboard</text>
+  <text x="650" y="556" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#9b5cff">Dark · Data</text>
+</svg>

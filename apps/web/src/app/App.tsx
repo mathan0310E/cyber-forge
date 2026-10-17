@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from '../features/auth/AuthContext';
 import type { ReactNode } from 'react';
 import { LandingPage } from '../app/LandingPage';
+import { TemplatesPage } from './TemplatesPage';
 import { LoginPage } from '../features/auth/LoginPage';
 import { SignupPage } from '../features/auth/SignupPage';
 import { ConnectIntegrationsPage } from '../features/integrations/ConnectIntegrations';
@@ -34,7 +35,7 @@ export function App() {
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<LandingPage />} />
         <Route path="features" element={<div className="p-8 text-forge-muted">Features — coming online.</div>} />
-        <Route path="templates" element={<div className="p-8 text-forge-muted">Templates — coming online.</div>} />
+        <Route path="templates" element={<TemplatesPage />} />
         <Route path="docs" element={<div className="p-8 text-forge-muted">Docs — coming online.</div>} />
         <Route path="privacy" element={<div className="p-8 text-forge-muted">Privacy.</div>} />
         <Route path="terms" element={<div className="p-8 text-forge-muted">Terms.</div>} />
